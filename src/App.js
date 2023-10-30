@@ -82,7 +82,7 @@ const App = () => {
       allInfo.dateInfo = dateData;
       console.log(allInfo);
       $.ajax({
-        url:"http://localhost:4000/send-email",
+        url:"/he/mail.php",
         type:'POST',
         dataType:'json',
         data:allInfo

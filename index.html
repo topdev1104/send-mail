@@ -1,0 +1,148 @@
+<script src="https://momentjs.com/downloads/moment.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<div>
+    <form style="margin:auto;width:600px;max-width:600px" id='form' >
+      <div>
+        <input type='text' placeholder='full name' name='full_name' />
+      </div>
+      <div>
+        <input type='text' placeholder='Phone' name='phone' />
+      </div>
+      <div>
+        <input type='text' placeholder='Personal ID' name='personal_id' />
+      </div>
+      <div>
+        <select name='email' id="PersonLists">
+        </select>
+      </div>
+      <div style="padding:20px;display:flex">
+        <h3 style="margin:20px">Dates</h3>
+        <h3 style="margin-left:200px">Total Hours:<span id='total_hours'></span></h3>
+      </div>
+      <div id="dateGroup"></div>
+      <script>
+            $('#dateGroup').html('');
+            [1,2,3,4,5,6,7,8,9].map((value,index)=>{
+            $('#dateGroup').append(
+                `<div className=${`dateGroup_${index}`}> \
+                  <input type='date' name="date_${index}" />\
+                  <label><input type='checkbox' onChange={handleChange(this)} name="check_${index}"><span>Day On</span></label>\
+                  <input type='time' name="time_${2*index}" onChange={handleTimeChange(this)} >\
+                  <input type='time' name="time_${2*index+1}" onChange={handleTimeChange(this)}>\
+                  <input type='number' name= "diff_${index}" />\
+                </div>`
+            )
+          })
+      </script>
+      <input type='button' value="submit" onclick={hanleSubmit()}  />
+    </form>
+  </div>
+
+  <script>
+
+const handleChange = (e) => {
+    var checkbox = $(e);
+    var Daylabel = $(checkbox).parent();
+    var time1 = $(Daylabel).next();
+    var time2 = $(time1).next();
+    var diffInput = $(time2).next();
+    if(e.checked){
+      Daylabel.children().eq(1).text('Day Off')
+      time1.hide()
+      time2.hide()
+      diffInput.hide()
+    }else{
+      Daylabel.children().eq(1).text('Day On')
+      time1.show()
+      time2.show()
+      diffInput.show()
+    }
+  };
+  const handleTimeChange = (e)=>{
+    const target = $(e);
+    if(target.attr('name') === 'time1'){
+      const time2 = $(target).next()
+      const diffInput = $(time2).next()
+      var first = moment(target.val(),'HH:mm');
+      var second = moment(time2.val(),'HH:mm')
+      var diff = Math.floor(moment.duration(second.diff(first)).asHours())
+      diffInput.val(diff)
+    }else{
+      const time1 = $(target).prev();
+      const diffInput = $(target).next();
+      first = moment(time1.val(),'HH:mm');
+      second = moment(target.val(),'HH:mm')
+      diff = Math.floor(moment.duration(second.diff(first)).asHours())
+      diffInput.val(diff)
+      var allItem = 0;
+      [0,1,2,3,4,5,6,7,8,9].map(item=>{
+        var int_item = parseFloat($(`input[name=diff_${item}]`).val()) || 0;
+        allItem +=int_item;
+      })
+      $("#total_hours").text(allItem)
+    }
+  }
+  const hanleSubmit = (e)=>{
+    const form = document.getElementById('form');
+
+    if (form) {
+
+      const formData = new FormData(form);
+      // console.log(formData,'33333');
+      const fullName = formData.get('full_name');
+      const phone = formData.get('phone');
+      const personalId = formData.get('personal_id');
+      const email = formData.get('email');
+      const allInfo = {}
+      allInfo.userInfo = {
+        fullName,
+        phone,
+        personalId,
+        email
+      }
+      const dateData = [];
+      [1, 2, 3, 4, 5, 6, 7, 8, 9].map((item, index) => {
+        let dayStatus = formData.get(`check_${index}`)
+        let date = formData.get(`date_${index}`)
+        let time1 = formData.get(`time_${2*index}`)
+        let time2 = formData.get(`time_${2*index+1}`)
+        let diff = formData.get(`diff_${index}`)
+        console.log(dayStatus,'dayStatus');
+        if (dayStatus === null) {
+          var obj = {
+            date,
+            time1,
+            time2,
+            diff
+          }
+          dateData.push(obj)
+        }
+      })
+      allInfo.dateInfo = dateData;
+      allInfo.totalHours = $("#total_hours").text();
+      console.log(allInfo);
+      $.ajax({
+        url:"/he/mail.php",
+        type:'POST',
+        dataType:'json',
+        data:allInfo
+      })
+
+    }
+
+
+  }
+  const loadJson = ()=>{
+    $.getJSON('/he/downlists.json').then(data=>{
+        $("#PersonLists").html('');
+        if(data && data.length){
+            data.map(list=>{
+                $("#PersonLists").append(
+                    `<option value=${list.gmail}>${list.name}</option>`
+                )
+            })
+        }
+    })
+  }
+  loadJson()
+  </script>
